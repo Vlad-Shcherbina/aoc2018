@@ -21,4 +21,17 @@ fun main() {
         }
     }
     println("part 1: ${numTwos * numThrees}")
+
+    val frags = mutableMapOf<Pair<Int, String>, Int>()
+    for (line in lines) {
+        for (i in 0 until line.length) {
+            val key = Pair(i, line.slice(0 until i) + line.slice(i + 1 until line.length))
+            frags[key] = 1 + (frags[key] ?: 0)
+        }
+    }
+    for (e in frags) {
+        if (e.value == 2) {
+            println("part 2: ${e.key.second}")
+        }
+    }
 }
