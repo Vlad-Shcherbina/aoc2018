@@ -20,8 +20,7 @@ fun main() {
                 val wakeUpTime = minuteStr.toInt()
                 sleepByGuard.getOrPut(guard!!) { mutableListOf() }.add(Pair(fallAsleepTime!!, wakeUpTime))
                 for (i in fallAsleepTime until wakeUpTime) {
-                    val k = Pair(guard, i)
-                    sleepByGuardAndMinute[k] = (sleepByGuardAndMinute[k] ?: 0) + 1
+                    sleepByGuardAndMinute.merge(Pair(guard, i), 1) { x, y -> x + y}
                 }
                 fallAsleepTime = null
             }
@@ -41,10 +40,9 @@ fun main() {
     val sleepPerMinute = mutableMapOf<Int, Int>()
     for ((begin, end) in chosenGuard.value) {
         for (i in begin until end) {
-            sleepPerMinute[i] = (sleepPerMinute[i] ?: 0) + 1
+            sleepPerMinute.merge(i, 1) { x, y -> x + y }
         }
     }
     println("part 1: ${chosenGuard.key * sleepPerMinute.maxBy { it.value}!!.key}")
-    val gm = sleepByGuardAndMinute.maxBy { it.value }!!.key
-    println("part 2: ${gm.first * gm.second}")
+    println("part 2: ${sleepByGuardAndMinute.maxBy { it.value }!!.key.run { first * second }}")
 }
