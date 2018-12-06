@@ -7,6 +7,7 @@ fun main() {
     lines.sort()
 
     val sleepByGuard = mutableMapOf<Int, MutableList<Pair<Int, Int>>>()
+    val sleepByGuardAndMinute = mutableMapOf<Pair<Int, Int>, Int>()
 
     var guard: Int? = null
     var fallAsleepTime: Int? = null
@@ -18,6 +19,10 @@ fun main() {
                 assert(hourStr == "00") {line}
                 val wakeUpTime = minuteStr.toInt()
                 sleepByGuard.getOrPut(guard!!) { mutableListOf() }.add(Pair(fallAsleepTime!!, wakeUpTime))
+                for (i in fallAsleepTime until wakeUpTime) {
+                    val k = Pair(guard, i)
+                    sleepByGuardAndMinute[k] = (sleepByGuardAndMinute[k] ?: 0) + 1
+                }
                 fallAsleepTime = null
             }
             "falls asleep" -> {
@@ -40,4 +45,6 @@ fun main() {
         }
     }
     println("part 1: ${chosenGuard.key * sleepPerMinute.maxBy { it.value}!!.key}")
+    val gm = sleepByGuardAndMinute.maxBy { it.value }!!.key
+    println("part 2: ${gm.first * gm.second}")
 }
