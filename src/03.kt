@@ -4,26 +4,26 @@ fun main() {
 
     val idsByPt = lines.asSequence().flatMap { line ->
         val m = re.matchEntire(line)!!
-        val id = m.groups[1]!!.value.toInt()
-        val left = m.groups[2]!!.value.toInt()
-        val top = m.groups[3]!!.value.toInt()
-        val width = m.groups[4]!!.value.toInt()
-        val height = m.groups[5]!!.value.toInt()
+        val (idStr, leftStr, topStr, widthStr, heightStr) = m.destructured
+        val id = idStr.toInt()
+        val left = leftStr.toInt()
+        val top = topStr.toInt()
+        val width = widthStr.toInt()
+        val height = heightStr.toInt()
         (left until left + width).asSequence().flatMap { x ->
             (top until top + height).asSequence().map { y -> Pair(Pair(x, y), id) }
         }
-    }.groupBy { it.first }.mapValues { it.value.map { it.second } }
+    }.groupBy { it.first }.mapValues { kv -> kv.value.map { it.second } }
 
     println("part 1: ${idsByPt.filter { it.value.size > 1 }.count()}")
 
-    val overlappingIds = idsByPt.asSequence().flatMap { kv ->
-        val s = kv.value.toSet()
-        if (s.size > 1) {
-            s
+    val overlappingIds = idsByPt.values.asSequence().flatMap { ids ->
+        if (ids.size > 1) {
+            ids.asSequence()
         } else {
-            emptySet()
-        }.asSequence()
+            emptySequence()
+        }
     }.toSet()
-    val allIds = idsByPt.asSequence().flatMap { it.value.asSequence() }.toSet()
+    val allIds = idsByPt.values.asSequence().flatMap { it.asSequence() }.toSet()
     println("part 2: ${allIds - overlappingIds}")
 }
