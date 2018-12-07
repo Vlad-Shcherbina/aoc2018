@@ -28,4 +28,22 @@ fun main() {
         }
     }
     println("part 1: ${areas.filterKeys { !infinite.contains(it) }.values.max()}")
+
+    val n = 10000
+    val xd = numPointsByDistance(pts.map { it.first }, n)
+    val yd = numPointsByDistance(pts.map { it.second }, n)
+    val a = xd.map { kvx ->
+        yd.filter { kvx.key + it.key <= n }
+            .map { kvx.value * it.value }
+            .sum()
+    }.sum()
+    println("part 2: $a")
+}
+
+fun numPointsByDistance(xs: Iterable<Int>, maxDistance: Int): Map<Int, Int> {
+    return (xs.min()!! - maxDistance .. xs.max()!! + maxDistance)
+        .map { x -> xs.sumBy { abs(x - it) } }
+        .filter { it <= maxDistance }
+        .groupingBy { it }
+        .eachCount()
 }
