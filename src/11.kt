@@ -1,3 +1,5 @@
+@file:JvmName("MyApp")
+
 const val gridSize = 300
 const val gridSerialNumber = 5535
 
