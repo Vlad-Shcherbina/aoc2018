@@ -92,7 +92,6 @@ fun main() {
         }
     }
 
-//    grid.forEach { row -> println(row.joinToString("")) }
-    val result = grid.flatMap { it }.count { it == '|' || it == '~' }
-    println("part 1: $result")
+    println("part 1: ${grid.flatten().count { it == '|' || it == '~' }}")
+    println("part 1: ${grid.flatten().count { it == '~' }}")
 }
