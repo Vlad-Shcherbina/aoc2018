@@ -20,34 +20,39 @@ fun neighbors(row: Int, col: Int): List<Pair<Int, Int>> =
         Pair(row, col + 1),
         Pair(row + 1, col))
 
-fun bestMoveDestination(unit: Unit, units: List<Unit>, board: Board): Pair<Int, Int>? {
-    val dists = board.map { MutableList(it.size) { -1 } }
-    var q = mutableListOf<Pair<Int, Int>>()
-    for (u in units) {
-        if (u.hp <= 0 || u.force == unit.force) {
-            continue
-        }
-        assert(dists[u.row][u.col] == -1)
-        dists[u.row][u.col] = 0
-        q.add(Pair(u.row, u.col))
-    }
-    var d = 1
+fun distsFrom(row: Int, col: Int, board: Board): List<List<Int?>> {
+    val dists = board.map { MutableList<Int?>(it.size) { null } }
+    var q = mutableListOf(Pair(row, col))
+    dists[row][col] = 0
+    var d = 0
     while (!q.isEmpty()) {
+        d++
         val newQ = mutableListOf<Pair<Int, Int>>()
-        for (x in q) {
-            for ((r, c) in neighbors(x.first, x.second)) {
-                if (board[r][c] == '.' && dists[r][c] == -1) {
-                    dists[r][c] = d
-                    newQ.add(Pair(r, c))
+        for ((r, c) in q) {
+            assert(dists[r][c] != null)
+            for ((r2, c2) in neighbors(r, c)) {
+                if (board[r2][c2] == '.' && dists[r2][c2] == null) {
+                    dists[r2][c2] = d
+                    newQ.add(Pair(r2, c2))
                 }
             }
         }
         q = newQ
-        d += 1
     }
+    return dists
+}
+
+fun bestMoveDestination(unit: Unit, units: List<Unit>, board: Board): Pair<Int, Int>? {
+    val dists = distsFrom(unit.row, unit.col, board)
+    val dst = units.filter { it.hp > 0 && it.force != unit.force }
+        .flatMap { neighbors(it.row, it.col) }
+        .filter { dists[it.first][it.second] != null}
+        .minWith(compareBy({ dists[it.first][it.second] }, { it.first }, {it.second }))
+        ?: return null
+    val dists2 = distsFrom(dst.first, dst.second, board)
     return neighbors(unit.row, unit.col)
-        .filter { dists[it.first][it.second] > 0 }
-        .minWith(compareBy({ dists[it.first][it.second] }, {it.first}, {it.second} ))
+        .filter { dists2[it.first][it.second] != null }
+        .minWith(compareBy({ dists2[it.first][it.second] }, { it.first }, { it.second }))!!
 }
 
 fun move(unit: Unit, dst: Pair<Int, Int>, board: Board) {
@@ -60,10 +65,7 @@ fun move(unit: Unit, dst: Pair<Int, Int>, board: Board) {
     board[unit.row][unit.col] = unit.force
 }
 
-fun main() {
-    val board: Board = java.io.File("data/15.txt").inputStream().bufferedReader().useLines {
-        it.map { it.toCharArray().toMutableList() }.toList()
-    }
+fun runBattle(board: Board, attackByForce: Map<Char, Int>): Pair<Int, List<Unit>> {
     val units = board.withIndex().flatMap { (i, row) ->
         row.withIndex().flatMap { (j, ch) ->
             if (ch == 'E' || ch == 'G') {
@@ -77,11 +79,6 @@ fun main() {
     var round = 0
     while (true) {
         units.sortWith(compareBy({ it.row }, { it.col }))
-        println("round $round")
-        units.forEach { if (it.hp > 0) println(it) }
-        for (row in board) {
-            println(row.joinToString(" "))
-        }
         var done = false
         for (unit in units) {
             if (unit.hp <= 0) {
@@ -93,24 +90,47 @@ fun main() {
             }
             var target = bestTargetInRange(unit, units)
             if (target == null) {
-                // move
                 val dst = bestMoveDestination(unit, units, board) ?: continue
                 move(unit, dst, board)
                 target = bestTargetInRange(unit, units)
             }
             if (target != null) {
-                // attack
-                target.hp -= 3
+                target.hp -= attackByForce[unit.force]!!
                 if (target.hp <= 0) {
                     board[target.row][target.col] = '.'
                 }
             }
         }
         if (done) {
-            val hpSum = units.filter { it.hp > 0 }.sumBy { it.hp }
-            println("part 1: ${round * hpSum}")
-            break
+            return Pair(round, units.filter { it.hp > 0 })
         }
         round++
+    }
+}
+
+fun main() {
+    val board: Board = java.io.File("data/15.txt").inputStream().bufferedReader().useLines {
+        it.map { it.toCharArray().toMutableList() }.toList()
+    };
+
+    {
+        val (round, units) = runBattle(
+            board.map { it.toMutableList() },
+            mapOf('E' to 3, 'G' to 3)
+        )
+        println("part 1: ${round * units.sumBy { it.hp }}")
+    }()
+
+    val initialElves = board.sumBy { row -> row.count {it == 'E'} }
+    var attack = 3
+    while (true) {
+        attack++
+        val (round, units) = runBattle(board.map {
+            it.toMutableList() },
+            mapOf('E' to attack, 'G' to 3))
+        if (units.size == initialElves && units.all {it.force == 'E' }) {
+            println("part 2: ${round * units.sumBy { it.hp }}")
+            break
+        }
     }
 }
