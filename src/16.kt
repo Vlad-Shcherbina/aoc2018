@@ -42,24 +42,24 @@ fun main() {
     while (true) {
         var m = re.matchEntire(it.next()) ?: break
         assert(m.groupValues[1] == "Before")
-        val valuesBefore = m.groupValues[2].split(", ").map { it.toInt() }
-        assert(valuesBefore.size == 4)
+        val regsBefore = m.groupValues[2].split(", ").map { it.toInt() }
+        assert(regsBefore.size == 4)
 
         val insn = it.next().split(" ").map { it.toInt() }
         assert(insn.size == 4)
 
         m = re.matchEntire(it.next()) ?: break
         assert(m.groupValues[1] == "After")
-        val valuesAfter = m.groupValues[2].split(", ").map { it.toInt() }
-        assert(valuesAfter.size == 4)
+        val regsAfter = m.groupValues[2].split(", ").map { it.toInt() }
+        assert(regsAfter.size == 4)
 
         val empty = it.next()
         assert(empty.isEmpty())
 
         val possibleOps = Op.values().filter { op ->
-            val values = valuesBefore.toMutableList()
-            runInsn(op, insn, values)
-            valuesAfter == values.toList()
+            val regs = regsBefore.toMutableList()
+            runInsn(op, insn, regs)
+            regsAfter == regs.toList()
         }
         if (possibleOps.size >= 3) {
             cnt++
@@ -67,4 +67,28 @@ fun main() {
         opcodes[insn[0]].removeIf { !possibleOps.contains(it) }
     }
     println("part 1: $cnt")
+
+    // this is not guaranteed to terminate, but appears to work in practice
+    while (opcodes.any { it.size > 1 }) {
+        for ((i, ops) in opcodes.withIndex()) {
+            val op = ops.singleOrNull() ?: continue
+            for ((j, ops2) in opcodes.withIndex()) {
+                if (i != j) {
+                    ops2.remove(op)
+                }
+            }
+        }
+    }
+
+    val regs = MutableList(4) { 0 }
+    while (it.hasNext()) {
+        val line = it.next()
+        if (line.isBlank()) {
+            continue
+        }
+        val insn = line.split(" ").map { it.toInt() }
+        runInsn(opcodes[insn[0]].single(), insn, regs)
+        assert(insn.size == 4)
+    }
+    println("part 2: ${regs[0]}")
 }
