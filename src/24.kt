@@ -1,14 +1,15 @@
+import java.io.File
 import java.lang.RuntimeException
 import kotlin.math.min
 
 data class Group(
     val name: String,
+    val side: Int,
     var count: Int,
     val hp: Int,
     val immune: Set<String>, val weak: Set<String>,
     val damage: Int, val attackType: String,
-    val initiative: Int,
-    val side: Int) {
+    val initiative: Int) {
     val effectivePower get() = count * damage
 
     companion object {
@@ -45,29 +46,12 @@ data class Group(
     }
 }
 
-fun main() {
-    val lines = java.io.File("data/24.txt").bufferedReader().useLines { it.toList() }
-    val it = lines.iterator()
-    val h = it.next()
-    assert(h == "Immune System:")
-    val immuneSystemGroups = it.asSequence()
-        .takeWhile { !it.isEmpty() }
-        .withIndex()
-        .map { (i, line) -> Group.parse("Immune System group ${i + 1}", 0, line) }.toList()
-    val h2 = it.next()
-    assert(h2 == "Infection:") { h2 }
-    val infectionGroups = it.asSequence()
-        .takeWhile { !it.isEmpty() }
-        .withIndex().
-        map { (i, line) -> Group.parse("Infection group ${i + 1}", 1, line) }.toList()
-    assert(!it.hasNext())
-
-    val groups = (immuneSystemGroups + infectionGroups).toMutableList()
+fun simulate(groups: MutableList<Group>) {
     while (true) {
-        groups.forEach {
-            println("${it.name} contains ${it.count} units")
-        }
-        println()
+//        groups.forEach {
+//            println("${it.name} contains ${it.count} units")
+//        }
+//        println()
 
         if (groups.map { it.side }.toSet().size < 2) {
             break
@@ -95,6 +79,7 @@ fun main() {
             }
         }
         attacks.sortByDescending { groups[it.first].initiative }
+        var totalKilled = 0
         for ((attackerIdx, targetIdx) in attacks) {
             val attacker = groups[attackerIdx]
             val target = groups[targetIdx]
@@ -103,10 +88,50 @@ fun main() {
                     if (target.weak.contains(attacker.attackType)) 2 else 1
             val killed = min(damage / target.hp, target.count)
             target.count -= killed
-            println("${attacker.name} attacks ${target.name} killing $killed")
+            totalKilled += killed
+//            println("${attacker.name} attacks ${target.name} killing $killed")
         }
-        println()
+//        println()
         groups.removeAll { it.count == 0 }
+        if (totalKilled == 0) {
+            break
+        }
     }
-    println("part 1: ${groups.sumBy { it.count }}")
+}
+
+fun main() {
+    val lines = File("data/24.txt").bufferedReader().useLines { it.toList() }
+    val it = lines.iterator()
+    val h = it.next()
+    assert(h == "Immune System:")
+    val immuneSystemGroups = it.asSequence()
+        .takeWhile { !it.isEmpty() }
+        .withIndex()
+        .map { (i, line) -> Group.parse("Immune System group ${i + 1}", 0, line) }.toList()
+    val h2 = it.next()
+    assert(h2 == "Infection:") { h2 }
+    val infectionGroups = it.asSequence()
+        .takeWhile { !it.isEmpty() }
+        .withIndex().
+        map { (i, line) -> Group.parse("Infection group ${i + 1}", 1, line) }.toList()
+    assert(!it.hasNext())
+
+    val groups = immuneSystemGroups + infectionGroups
+
+    val g1 = groups.map { it.copy() }.toMutableList()
+    simulate(g1)
+    println("part 1: ${g1.sumBy { it.count }}")
+
+    var boost = 0
+    while (true) {
+        val g = groups.map {
+            it.copy(damage = it.damage + if (it.side == 0) boost else 0)
+        }.toMutableList()
+        simulate(g)
+        if (g.map { it.side }.toSet() == setOf(0)) {
+            println("part 2: ${g.sumBy { it.count }}")
+            break
+        }
+        boost++
+    }
 }
